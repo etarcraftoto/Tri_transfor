@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三角函數學習工具</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f0f1a; color: #e0e0ff; min-height: 100vh; }
+  h1 { text-align: center; padding: 18px; font-size: 1.5rem; background: linear-gradient(135deg, #6c63ff, #48cae4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 2px; }
+  .tabs { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; padding: 10px; }
+  .tab { padding: 8px 18px; border-radius: 20px; border: 1.5px solid #6c63ff; background: transparent; color: #aaa; cursor: pointer; font-size: 0.85rem; transition: all .2s; }
+  .tab.active, .tab:hover { background: #6c63ff; color: #fff; }
+  .panel { display: none; padding: 16px; max-width: 860px; margin: 0 auto; }
+  .panel.active { display: block; }
+
+  /* ── 單位圓 ── */
+  #unitCircleWrap { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; justify-content: center; }
+  canvas#uc { background: #1a1a2e; border-radius: 12px; border: 1px solid #333; }
+  #ucInfo { background: #1a1a2e; border-radius: 12px; padding: 16px; min-width: 200px; border: 1px solid #333; }
+  #ucInfo h3 { color: #6c63ff; margin-bottom: 10px; font-size: 1rem; }
+  .val-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #2a2a3e; font-size: 0.9rem; }
+  .val-row span:first-child { color: #aaa; }
+  .val-row span:last-child { color: #48cae4; font-weight: bold; }
+  #sliderWrap { text-align: center; margin-top: 10px; }
+  input[type=range] { width: 260px; accent-color: #6c63ff; }
+  #angleLabel { color: #f0a500; font-size: 1rem; margin-top: 4px; }
+
+  /* ── 公式卡片 ── */
+  .formula-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .card { background: #1a1a2e; border-radius: 12px; padding: 14px; border: 1px solid #2a2a3e; }
+  .card h4 { color: #6c63ff; margin-bottom: 8px; font-size: 0.95rem; border-bottom: 1px solid #2a2a3e; padding-bottom: 6px; }
+  .card p { font-size: 0.82rem; line-height: 1.8; color: #ccc; }
+  .card p b { color: #48cae4; }
+  .highlight { color: #f0a500 !important; }
+
+  /* ── 計算機 ── */
+  .calc-box { background: #1a1a2e; border-radius: 12px; padding: 18px; max-width: 420px; margin: 0 auto; border: 1px solid #333; }
+  .calc-box label { font-size: 0.85rem; color: #aaa; display: block; margin-bottom: 4px; }
+  .calc-box input, .calc-box select { width: 100%; padding: 8px 10px; background: #0f0f1a; border: 1px solid #444; border-radius: 8px; color: #fff; font-size: 0.95rem; margin-bottom: 12px; }
+  .calc-box button { width: 100%; padding: 10px; background: #6c63ff; border: none; border-radius: 8px; color: #fff; font-size: 1rem; cursor: pointer; }
+  .calc-box button:hover { background: #5a52e0; }
+  #calcResult { margin-top: 14px; background: #0f0f1a; border-radius: 8px; padding: 12px; font-size: 0.9rem; line-height: 1.9; color: #48cae4; min-height: 60px; }
+
+  /* ── 特殊角表 ── */
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  th { background: #6c63ff; color: #fff; padding: 8px; }
+  td { padding: 7px 10px; text-align: center; border-bottom: 1px solid #2a2a3e; }
+  tr:nth-child(even) td { background: #1a1a2e; }
+  tr:hover td { background: #252540; }
+  .na { color: #f05; }
+
+  /* ── 積化和差 / 和差化積 ── */
+  .section-title { color: #f0a500; font-size: 1rem; margin: 14px 0 8px; font-weight: bold; }
+  .formula-list { list-style: none; }
+  .formula-list li { background: #1a1a2e; border-left: 3px solid #6c63ff; margin-bottom: 8px; padding: 10px 14px; border-radius: 0 8px 8px 0; font-size: 0.88rem; line-height: 1.7; }
+  .formula-list li .lhs { color: #f0a500; }
+  .formula-list li .rhs { color: #48cae4; }
+  .formula-list li .note { color: #888; font-size: 0.78rem; }
+</style>
+</head>
+<body>
+<h1>📐 三角函數互動學習工具</h1>
+
+<div class="tabs">
+  <button class="tab active" onclick="showPanel('p1',this)">🔵 單位圓</button>
+  <button class="tab" onclick="showPanel('p2',this)">📊 特殊角表</button>
+  <button class="tab" onclick="showPanel('p3',this)">🔄 恆等式</button>
+  <button class="tab" onclick="showPanel('p4',this)">✖️ 積化和差</button>
+  <button class="tab" onclick="showPanel('p5',this)">➕ 和差化積</button>
+  <button class="tab" onclick="showPanel('p6',this)">🧮 計算機</button>
+</div>
+
+<!-- Panel 1: 單位圓 -->
+<div id="p1" class="panel active">
+  <div id="unitCircleWrap">
+    <div>
+      <canvas id="uc" width="300" height="300"></canvas>
+      <div id="sliderWrap">
+        <input type="range" id="angleSlider" min="0" max="360" value="45" oninput="updateCircle()">
+        <div id="angleLabel">θ = 45°</div>
+      </div>
+    </div>
+    <div id="ucInfo">
+      <h3>📌 當前角度值</h3>
+      <div class="val-row"><span>角度 θ</span><span id="vDeg">45°</span></div>
+      <div class="val-row"><span>弧度</span><span id="vRad">π/4</span></div>
+      <div class="val-row"><span>sin θ</span><span id="vSin">—</span></div>
+      <div class="val-row"><span>cos θ</span><span id="vCos">—</span></div>
+      <div class="val-row"><span>tan θ</span><span id="vTan">—</span></div>
+      <div class="val-row"><span>csc θ</span><span id="vCsc">—</span></div>
+      <div class="val-row"><span>sec θ</span><span id="vSec">—</span></div>
+      <div class="val-row"><span>cot θ</span><span id="vCot">—</span></div>
+      <hr style="border-color:#2a2a3e;margin:10px 0">
+      <div style="font-size:0.78rem;color:#888;">
+        💡 點 (cos θ, sin θ) 在單位圓上<br>
+        拖動滑桿改變角度
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Panel 2: 特殊角表 -->
+<div id="p2" class="panel">
+  <table>
+    <tr>
+      <th>角度</th><th>弧度</th><th>sin</th><th>cos</th><th>tan</th><th>csc</th><th>sec</th><th>cot</th>
+    </tr>
+  </table>
+  <div id="tableBody"></div>
+</div>
+
+<!-- Panel 3: 恆等式 -->
+<div id="p3" class="panel">
+  <div class="formula-grid">
+    <div class="card">
+      <h4>🔷 基本定義</h4>
+      <p>
+        <b>sin θ</b> = 對邊 / 斜邊<br>
+        <b>cos θ</b> = 鄰邊 / 斜邊<br>
+        <b>tan θ</b> = 對邊 / 鄰邊 = sin/cos<br>
+        <b>csc θ</b> = 1 / sin θ<br>
+        <b>sec θ</b> = 1 / cos θ<br>
+        <b>cot θ</b> = 1 / tan θ = cos/sin
+      </p>
+    </div>
+    <div class="card">
+      <h4>🔷 畢氏恆等式</h4>
+      <p>
+        <b>sin²θ + cos²θ = 1</b><br>
+        <b>1 + tan²θ = sec²θ</b><br>
+        <b>1 + cot²θ = csc²θ</b>
+      </p>
+    </div>
+    <div class="card">
+      <h4>🔷 負角公式</h4>
+      <p>
+        <b>sin(−θ) = −sin θ</b>（奇函數）<br>
+        <b>cos(−θ) = cos θ</b>（偶函數）<br>
+        <b>tan(−θ) = −tan θ</b>（奇函數）
+      </p>
+    </div>
+    <div class="card">
+      <h4>🔷 餘角公式（90°−θ）</h4>
+      <p>
+        <b>sin(90°−θ) = cos θ</b><br>
+        <b>cos(90°−θ) = sin θ</b><br>
+        <b>tan(90°−θ) = cot θ</b>
+      </p>
+    </div>
+    <div class="card">
+      <h4>🔷 補角公式（180°−θ）</h4>
+      <p>
+        <b>sin(180°−θ) = sin θ</b><br>
+        <b>cos(180°−θ) = −cos θ</b><br>
+        <b>tan(180°−θ) = −tan θ</b>
+      </p>
+    </div>
+    <div class="card">
+      <h4>🔷 和差角公式</h4>
+      <p>
+        <b>sin(A±B)</b> = sinA cosB ± cosA sinB<br>
+        <b>cos(A±B)</b> = cosA cosB ∓ sinA sinB<br>
+        <b>tan(A±B)</b> = (tanA ± tanB) / (1 ∓ tanA tanB)
+      </p>
+    </div>
+    <div class="card">
+      <h4>🔷 二倍角公式</h4>
+      <p>
+        <b>sin 2θ</b> = 2 sin θ cos θ<br>
+        <b>cos 2θ</b> = cos²θ − sin²θ<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= 2cos²θ − 1<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= 1 − 2sin²θ<br>
+        <b>tan 2θ</b> = 2tanθ / (1 − tan²θ)
+      </p>
+    </div>
+    <div class="card">
+      <h4>🔷 半角公式</h4>
+      <p>
+        <b>sin²θ</b> = (1 − cos 2θ) / 2<br>
+        <b>cos²θ</b> = (1 + cos 2θ) / 2<br>
+        <b>tan(θ/2)</b> = sinθ / (1 + cosθ)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= (1 − cosθ) / sinθ
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Panel 4: 積化和差 -->
+<div id="p4" class="panel">
+  <p style="color:#aaa;font-size:0.85rem;margin-bottom:10px;">💡 將兩個三角函數的<b style="color:#f0a500">乘積</b>轉換為<b style="color:#48cae4">和或差</b>的形式</p>
+  <ul class="formula-list">
+    <li>
+      <span class="lhs">sin A · cos B</span> = 
+      <span class="rhs">½ [sin(A+B) + sin(A−B)]</span><br>
+      <span class="note">→ 一正一餘，取 sin 的和差</span>
+    </li>
+    <li>
+      <span class="lhs">cos A · sin B</span> = 
+      <span class="rhs">½ [sin(A+B) − sin(A−B)]</span><br>
+      <span class="note">→ 一餘一正，取 sin 的和差（注意符號）</span>
+    </li>
+    <li>
+      <span class="lhs">cos A · cos B</span> = 
+      <span class="rhs">½ [cos(A−B) + cos(A+B)]</span><br>
+      <span class="note">→ 兩餘相乘，取 cos 的和差</span>
+    </li>
+    <li>
+      <span class="lhs">sin A · sin B</span> = 
+      <span class="rhs">½ [cos(A−B) − cos(A+B)]</span><br>
+      <span class="note">→ 兩正相乘，取 cos 的差（注意符號相反）</span>
+    </li>
+  </ul>
+  <div class="section-title">📝 記憶口訣</div>
+  <div style="background:#1a1a2e;border-radius:10px;padding:14px;font-size:0.85rem;line-height:1.9;border:1px solid #2a2a3e;">
+    <b style="color:#f0a500">正餘 → sin和差</b>，<b style="color:#48cae4">餘餘 / 正正 → cos和差</b><br>
+    兩正相乘記得 cos 要<b style="color:#f05">「差減和」</b><br>
+    所有結果都要乘以 <b style="color:#6c63ff">½</b>
+  </div>
+</div>
+
+<!-- Panel 5: 和差化積 -->
+<div id="p5" class="panel">
+  <p style="color:#aaa;font-size:0.85rem;margin-bottom:10px;">💡 將兩個三角函數的<b style="color:#48cae4">和或差</b>轉換為<b style="color:#f0a500">乘積</b>的形式</p>
+  <ul class="formula-list">
+    <li>
+      <span class="lhs">sin A + sin B</span> = 
+      <span class="rhs">2 sin((A+B)/2) · cos((A−B)/2)</span><br>
+      <span class="note">→ sin和 → sin半和 × cos半差</span>
+    </li>
+    <li>
+      <span class="lhs">sin A − sin B</span> = 
+      <span class="rhs">2 cos((A+B)/2) · sin((A−B)/2)</span><br>
+      <span class="note">→ sin差 → cos半和 × sin半差</span>
+    </li>
+    <li>
+      <span class="lhs">cos A + cos B</span> = 
+      <span class="rhs">2 cos((A+B)/2) · cos((A−B)/2)</span><br>
+      <span class="note">→ cos和 → 兩個 cos 相乘</span>
+    </li>
+    <li>
+      <span class="lhs">cos A − cos B</span> = 
+      <span class="rhs">−2 sin((A+B)/2) · sin((A−B)/2)</span><br>
+      <span class="note">→ cos差 → 負號 × 兩個 sin 相乘</span>
+    </li>
+  </ul>
+  <div class="section-title">📝 記憶口訣</div>
+  <div style="background:#1a1a2e;border-radius:10px;padding:14px;font-size:0.85rem;line-height:1.9;border:1px solid #2a2a3e;">
+    結果都是 <b style="color:#6c63ff">2 × (半和) × (半差)</b><br>
+    <b style="color:#f0a500">sin±sin</b>：一定有 <b style="color:#48cae4">sin×cos</b>（sin和→sin前，sin差→cos前）<br>
+    <b style="color:#f0a500">cos+cos</b>：<b style="color:#48cae4">cos×cos</b><br>
+    <b style="color:#f0a500">cos−cos</b>：<b style="color:#f05">負號</b> + <b style="color:#48cae4">sin×sin</b>
+  </div>
+</div>
+
+<!-- Panel 6: 計算機 -->
+<div id="p6" class="panel">
+  <div class="calc-box">
+    <label>輸入角度（度）</label>
+    <input type="number" id="calcAngle" value="30" step="1">
+    <label>選擇公式類型</label>
+    <select id="calcType">
+      <optgroup label="基本三角函數">
+        <option value="basic">六大三角函數值</option>
+      </optgroup>
+      <optgroup label="積化和差">
+        <option value="pc_sc">sin A · cos B</option>
+        <option value="pc_cs">cos A · sin B</option>
+        <option value="pc_cc">cos A · cos B</option>
+        <option value="pc_ss">sin A · sin B</option>
+      </optgroup>
+      <optgroup label="和差化積">
+        <option value="sp_ss">sin A + sin B</option>
+        <option value="sp_sd">sin A − sin B</option>
+        <option value="sp_cs">cos A + cos B</option>
+        <option value="sp_cd">cos A − cos B</option>
+      </optgroup>
+    </select>
+    <div id="calcBInputWrap" style="display:none">
+      <label>輸入角度 B（度）</label>
+      <input type="number" id="calcAngleB" value="60" step="1">
+    </div>
+    <button onclick="calculate()">計算</button>
+    <div id="calcResult">請輸入角度後按「計算」</div>
+  </div>
+</div>
+
+<script>
+  // ── Tab 切換 ──
+  function showPanel(id, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+    if (id === 'p1') updateCircle();
+  }
+
+  // ── 特殊角表 ──
+  const specialAngles = [
+    [0,'0',0,1,0,'∞',1,'∞'],
+    [30,'π/6',0.5,Math.sqrt(3)/2,1/Math.sqrt(3),2,2/Math.sqrt(3),Math.sqrt(3)],
+    [45,'π/4',Math.sqrt(2)/2,Math.sqrt(2)/2,1,Math.sqrt(2),Math.sqrt(2),1],
+    [60,'π/3',Math.sqrt(3)/2,0.5,Math.sqrt(3),2/Math.sqrt(3),2,1/Math.sqrt(3)],
+    [90,'π/2',1,0,'∞',1,'∞',0],
+    [120,'2π/3',Math.sqrt(3)/2,-0.5,-Math.sqrt(3),2/Math.sqrt(3),-2,-1/Math.sqrt(3)],
+    [135,'3π/4',Math.sqrt(2)/2,-Math.sqrt(2)/2,-1,Math.sqrt(2),-Math.sqrt(2),-1],
+    [150,'5π/6',0.5,-Math.sqrt(3)/2,-1/Math.sqrt(3),2,-2/Math.sqrt(3),-Math.sqrt(3)],
+    [180,'π',0,-1,0,'∞',-1,'∞'],
+    [270,'3π/2',-1,0,'∞',-1,'∞',0],
+    [360,'2π',0,1,0,'∞',1,'∞'],
+  ];
+  function fmt(v) {
+    if (v === '∞') return '<span class="na">未定義</span>';
+    if (Math.abs(v) < 1e-10) return '0';
+    const map = {
+      [Math.sqrt(3)/2]: '√3/2', [-(Math.sqrt(3)/2)]: '−√3/2',
+      [Math.sqrt(2)/2]: '√2/2', [-(Math.sqrt(2)/2)]: '−√2/2',
+      [0.5]: '1/2', [-0.5]: '−1/2',
+      [1/Math.sqrt(3)]: '√3/3', [-(1/Math.sqrt(3))]: '−√3/3',
+      [Math.sqrt(3)]: '√3', [-Math.sqrt(3)]: '−√3',
+      [2/Math.sqrt(3)]: '2√3/3', [-(2/Math.sqrt(3))]: '−2√3/3',
+      [Math.sqrt(2)]: '√2', [-Math.sqrt(2)]: '−√2',
+    };
+    for (const [k, label] of Object.entries(map)) {
+      if (Math.abs(v - parseFloat(k)) < 1e-9) return label;
+    }
+    return v.toFixed(4);
+  }
+  const tb = document.getElementById('tableBody');
+  let tableHTML = '<table>';
+  specialAngles.forEach(r => {
+    tableHTML += `<tr><td>${r[0]}°</td><td>${r[1]}</td><td>${fmt(r[2])}</td><td>${fmt(r[3])}</td><td>${fmt(r[4])}</td><td>${fmt(r[5])}</td><td>${fmt(r[6])}</td><td>${fmt(r[7])}</td></tr>`;
+  });
+  tableHTML += '</table>';
+  tb.innerHTML = tableHTML;
+
+  // ── 單位圓 ──
+  const canvas = document.getElementById('uc');
+  const ctx = canvas.getContext('2d');
+  const cx = 150, cy = 150, r = 110;
+
+  function updateCircle() {
+    const deg = parseInt(document.getElementById('angleSlider').value);
+    const rad = deg * Math.PI / 180;
+    const s = Math.sin(rad), c = Math.cos(rad), t = Math.tan(rad);
+    const px = cx + r * c, py = cy - r * s;
+
+    ctx.clearRect(0, 0, 300, 300);
+
+    // 背景格線
+    ctx.strokeStyle = '#2a2a3e'; ctx.lineWidth = 1;
+    for (let i = -2; i <= 2; i++) {
+      ctx.beginPath(); ctx.moveTo(cx + i*55, 10); ctx.lineTo(cx + i*55, 290); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(10, cy + i*55); ctx.lineTo(290, cy + i*55); ctx.stroke();
+    }
+
+    // 軸
+    ctx.strokeStyle = '#444'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(10, cy); ctx.lineTo(290, cy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, 10); ctx.lineTo(cx, 290); ctx.stroke();
+
+    // 軸標籤
+    ctx.fillStyle = '#666'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('1', cx + r + 4, cy - 6);
+    ctx.fillText('-1', cx - r - 6, cy - 6);
+    ctx.fillText('1', cx + 8, cy - r + 4);
+    ctx.fillText('-1', cx + 8, cy + r + 4);
+
+    // 單位圓
+    ctx.strokeStyle = '#6c63ff'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2*Math.PI); ctx.stroke();
+
+    // cos 投影（x軸）
+    ctx.strokeStyle = '#48cae4'; ctx.lineWidth = 2;
+    ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(px, cy); ctx.lineTo(px, py); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, cy); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // sin 投影（y軸）
+    ctx.strokeStyle = '#f0a500'; ctx.lineWidth = 2;
+    ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(cx, py); ctx.lineTo(px, py); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 半徑線
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py); ctx.stroke();
+
+    // 角弧
+    ctx.strokeStyle = '#f0a500'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(cx, cy, 22, -rad, 0, rad < 0); ctx.stroke();
+
+    // 點
+    ctx.fillStyle = '#ff6b6b';
+    ctx.beginPath(); ctx.arc(px, py, 6, 0, 2*Math.PI); ctx.fill();
+
+    // 標籤
+    ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillStyle = '#ff6b6b';
+    ctx.fillText(`(${c.toFixed(2)}, ${s.toFixed(2)})`, px + 8, py - 6);
+
+    ctx.fillStyle = '#48cae4'; ctx.textAlign = 'center';
+    ctx.fillText('cos θ', (cx + px)/2, cy + 14);
+
+    ctx.fillStyle = '#f0a500'; ctx.textAlign = 'left';
+    ctx.fillText('sin θ', px + 6, (cy + py)/2);
+
+    // 更新資訊
+    document.getElementById('angleLabel').textContent = `θ = ${deg}°`;
+    document.getElementById('vDeg').textContent = `${deg}°`;
+    document.getElementById('vRad').textContent = `${(rad).toFixed(4)} rad`;
+    document.getElementById('vSin').textContent = s.toFixed(4);
+    document.getElementById('vCos').textContent = c.toFixed(4);
+    document.getElementById('vTan').textContent = Math.abs(c) < 1e-10 ? '未定義' : t.toFixed(4);
+    document.getElementById('vCsc').textContent = Math.abs(s) < 1e-10 ? '未定義' : (1/s).toFixed(4);
+    document.getElementById('vSec').textContent = Math.abs(c) < 1e-10 ? '未定義' : (1/c).toFixed(4);
+    document.getElementById('vCot').textContent = Math.abs(s) < 1e-10 ? '未定義' : (c/s).toFixed(4);
+  }
+  updateCircle();
+
+  // ── 計算機 ──
+  document.getElementById('calcType').addEventListener('change', function() {
+    const needB = this.value !== 'basic';
+    document.getElementById('calcBInputWrap').style.display = needB ? 'block' : 'none';
+  });
+
+  function n(v, d=4) { return Math.abs(v) < 1e-10 ? '0' : v.toFixed(d); }
+
+  function calculate() {
+    const A = parseFloat(document.getElementById('calcAngle').value) * Math.PI / 180;
+    const B = parseFloat(document.getElementById('calcAngleB').value || 0) * Math.PI / 180;
+    const type = document.getElementById('calcType').value;
+    const Adeg = document.getElementById('calcAngle').value;
+    const Bdeg = document.getElementById('calcAngleB').value || 0;
+    let html = '';
+
+    if (type === 'basic') {
+      const s=Math.sin(A),c=Math.cos(A),t=Math.tan(A);
+      html = `
+        sin(${Adeg}°) = <b>${n(s)}</b><br>
+        cos(${Adeg}°) = <b>${n(c)}</b><br>
+        tan(${Adeg}°) = <b>${Math.abs(c)<1e-10?'未定義':n(t)}</b><br>
+        csc(${Adeg}°) = <b>${Math.abs(s)<1e-10?'未定義':n(1/s)}</b><br>
+        sec(${Adeg}°) = <b>${Math.abs(c)<1e-10?'未定義':n(1/c)}</b><br>
+        cot(${Adeg}°) = <b>${Math.abs(s)<1e-10?'未定義':n(c/s)}</b>`;
+    } else if (type === 'pc_sc') {
+      const res = 0.5*(Math.sin(A+B)+Math.sin(A-B));
+      html = `sin(${Adeg}°)·cos(${Bdeg}°)<br>= ½[sin(${+Adeg+ +Bdeg}°) + sin(${Adeg-Bdeg}°)]<br>= ½[${n(Math.sin(A+B))} + ${n(Math.sin(A-B))}]<br>= <b>${n(res)}</b>`;
+    } else if (type === 'pc_cs') {
+      const res = 0.5*(Math.sin(A+B)-Math.sin(A-B));
+      html = `cos(${Adeg}°)·sin(${Bdeg}°)<br>= ½[sin(${+Adeg+ +Bdeg}°) − sin(${Adeg-Bdeg}°)]<br>= ½[${n(Math.sin(A+B))} − ${n(Math.sin(A-B))}]<br>= <b>${n(res)}</b>`;
+    } else if (type === 'pc_cc') {
+      const res = 0.5*(Math.cos(A-B)+Math.cos(A+B));
+      html = `cos(${Adeg}°)·cos(${Bdeg}°)<br>= ½[cos(${Adeg-Bdeg}°) + cos(${+Adeg+ +Bdeg}°)]<br>= ½[${n(Math.cos(A-B))} + ${n(Math.cos(A+B))}]<br>= <b>${n(res)}</b>`;
+    } else if (type === 'pc_ss') {
+      const res = 0.5*(Math.cos(A-B)-Math.cos(A+B));
+      html = `sin(${Adeg}°)·sin(${Bdeg}°)<br>= ½[cos(${Adeg-Bdeg}°) − cos(${+Adeg+ +Bdeg}°)]<br>= ½[${n(Math.cos(A-B))} − ${n(Math.cos(A+B))}]<br>= <b>${n(res)}</b>`;
+    } else if (type === 'sp_ss') {
+      const res = 2*Math.sin((A+B)/2)*Math.cos((A-B)/2);
+      html = `sin(${Adeg}°) + sin(${Bdeg}°)<br>= 2·sin(${(+Adeg+ +Bdeg)/2}°)·cos(${(Adeg-Bdeg)/2}°)<br>= 2×${n(Math.sin((A+B)/2))}×${n(Math.cos((A-B)/2))}<br>= <b>${n(res)}</b>`;
+    } else if (type === 'sp_sd') {
+      const res = 2*Math.cos((A+B)/2)*Math.sin((A-B)/2);
+      html = `sin(${Adeg}°) − sin(${Bdeg}°)<br>= 2·cos(${(+Adeg+ +Bdeg)/2}°)·sin(${(Adeg-Bdeg)/2}°)<br>= 2×${n(Math.cos((A+B)/2))}×${n(Math.sin((A-B)/2))}<br>= <b>${n(res)}</b>`;
+    } else if (type === 'sp_cs') {
+      const res = 2*Math.cos((A+B)/2)*Math.cos((A-B)/2);
+      html = `cos(${Adeg}°) + cos(${Bdeg}°)<br>= 2·cos(${(+Adeg+ +Bdeg)/2}°)·cos(${(Adeg-Bdeg)/2}°)<br>= 2×${n(Math.cos((A+B)/2))}×${n(Math.cos((A-B)/2))}<br>= <b>${n(res)}</b>`;
+    } else if (type === 'sp_cd') {
+      const res = -2*Math.sin((A+B)/2)*Math.sin((A-B)/2);
+      html = `cos(${Adeg}°) − cos(${Bdeg}°)<br>= −2·sin(${(+Adeg+ +Bdeg)/2}°)·sin(${(Adeg-Bdeg)/2}°)<br>= −2×${n(Math.sin((A+B)/2))}×${n(Math.sin((A-B)/2))}<br>= <b>${n(res)}</b>`;
+    }
+    document.getElementById('calcResult').innerHTML = html;
+  }
+</script>
+</body>
+</html>
